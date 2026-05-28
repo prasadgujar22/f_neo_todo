@@ -42,7 +42,7 @@ class NeoTodoApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const seed = Color(0xFF2563EB);
+    const seed = Color(0xFF6D28D9);
 
     return MaterialApp(
       title: 'Neo To-Do',
@@ -65,6 +65,13 @@ ThemeData _buildTheme(Brightness brightness, Color seed) {
     colorScheme: colorScheme,
     useMaterial3: true,
     scaffoldBackgroundColor: colorScheme.surface,
+    cardTheme: CardTheme(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      color: colorScheme.surfaceContainerLow,
+    ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
       fillColor: colorScheme.surfaceContainerLowest,
@@ -78,7 +85,7 @@ ThemeData _buildTheme(Brightness brightness, Color seed) {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: const BorderRadius.all(Radius.circular(12)),
-        borderSide: BorderSide(color: colorScheme.primary, width: 1.4),
+        borderSide: BorderSide(color: colorScheme.primary, width: 1.5),
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       floatingLabelBehavior: FloatingLabelBehavior.never,
@@ -86,18 +93,45 @@ ThemeData _buildTheme(Brightness brightness, Color seed) {
     ),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
-        backgroundColor: seed,
-        foregroundColor: Colors.white,
+        backgroundColor: colorScheme.primary,
+        foregroundColor: colorScheme.onPrimary,
+        elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        textStyle: const TextStyle(fontWeight: FontWeight.w800),
+        textStyle: const TextStyle(
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.2,
+        ),
+      ),
+    ),
+    outlinedButtonTheme: OutlinedButtonThemeData(
+      style: OutlinedButton.styleFrom(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        side: BorderSide(color: colorScheme.outlineVariant),
+      ),
+    ),
+    textButtonTheme: TextButtonThemeData(
+      style: TextButton.styleFrom(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        textStyle: const TextStyle(fontWeight: FontWeight.w700),
       ),
     ),
     tooltipTheme: TooltipThemeData(
       decoration: BoxDecoration(
         color: colorScheme.inverseSurface,
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(8),
       ),
-      textStyle: TextStyle(color: colorScheme.onInverseSurface),
+      textStyle: TextStyle(
+        color: colorScheme.onInverseSurface,
+        fontSize: 12,
+      ),
+    ),
+    dividerTheme: DividerThemeData(
+      color: colorScheme.outlineVariant.withValues(alpha: 0.5),
+    ),
+    iconButtonTheme: IconButtonThemeData(
+      style: IconButton.styleFrom(
+        foregroundColor: colorScheme.onSurfaceVariant,
+      ),
     ),
   );
 }
@@ -1094,15 +1128,14 @@ class _TodoHomePageState extends State<TodoHomePage>
       initialDate.month,
       initialDate.day,
     );
-    var hour = initialDate.hour % 12 == 0 ? 12 : initialDate.hour % 12;
-    var minute = initialDate.minute;
-    var isPm = initialDate.hour >= 12;
+    // Use a fixed base date so the time picker only scrolls through time.
+    var selectedTime = DateTime(2000, 1, 1, initialDate.hour, initialDate.minute);
 
     return showDialog<DateTime>(
       context: context,
-      builder: (context) {
+      builder: (ctx) {
         return StatefulBuilder(
-          builder: (context, setDialogState) {
+          builder: (ctx, setDialogState) {
             return AlertDialog(
               title: const Text('Due date'),
               contentPadding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
@@ -1119,90 +1152,66 @@ class _TodoHomePageState extends State<TodoHomePage>
                         setDialogState(() => selectedDate = date);
                       },
                     ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: DropdownButtonFormField<int>(
-                            initialValue: hour,
-                            decoration: const InputDecoration(
-                              labelText: 'Hour',
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(4, 4, 4, 8),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'TIME',
+                            style: TextStyle(
+                              color: colorScheme.onSurfaceVariant,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.8,
                             ),
-                            items: [
-                              for (var value = 1; value <= 12; value++)
-                                DropdownMenuItem<int>(
-                                  value: value,
-                                  child: Text('$value'),
+                          ),
+                          const SizedBox(height: 6),
+                          SizedBox(
+                            height: 160,
+                            child: CupertinoTheme(
+                              data: CupertinoThemeData(
+                                brightness: Theme.of(ctx).brightness,
+                                primaryColor: colorScheme.primary,
+                                textTheme: CupertinoTextThemeData(
+                                  dateTimePickerTextStyle: TextStyle(
+                                    color: colorScheme.onSurface,
+                                    fontSize: 20,
+                                  ),
                                 ),
-                            ],
-                            onChanged: (value) {
-                              if (value == null) return;
-                              setDialogState(() => hour = value);
-                            },
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: DropdownButtonFormField<int>(
-                            initialValue: minute,
-                            decoration: const InputDecoration(
-                              labelText: 'Minute',
+                              ),
+                              child: CupertinoDatePicker(
+                                mode: CupertinoDatePickerMode.time,
+                                initialDateTime: selectedTime,
+                                use24hFormat:
+                                    MediaQuery.alwaysUse24HourFormatOf(ctx),
+                                onDateTimeChanged: (newTime) {
+                                  selectedTime = newTime;
+                                },
+                              ),
                             ),
-                            menuMaxHeight: 280,
-                            items: [
-                              for (var value = 0; value < 60; value++)
-                                DropdownMenuItem<int>(
-                                  value: value,
-                                  child: Text(value.toString().padLeft(2, '0')),
-                                ),
-                            ],
-                            onChanged: (value) {
-                              if (value == null) return;
-                              setDialogState(() => minute = value);
-                            },
                           ),
-                        ),
-                        const SizedBox(width: 10),
-                        SegmentedButton<bool>(
-                          showSelectedIcon: false,
-                          style: SegmentedButton.styleFrom(
-                            selectedBackgroundColor: colorScheme.primary
-                                .withValues(alpha: 0.16),
-                          ),
-                          segments: const [
-                            ButtonSegment<bool>(
-                              value: false,
-                              label: Text('AM'),
-                            ),
-                            ButtonSegment<bool>(value: true, label: Text('PM')),
-                          ],
-                          selected: {isPm},
-                          onSelectionChanged: (values) {
-                            setDialogState(() => isPm = values.single);
-                          },
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ],
                 ),
               ),
               actions: [
                 TextButton(
-                  onPressed: () => Navigator.pop(context),
+                  onPressed: () => Navigator.pop(ctx),
                   child: const Text('Cancel'),
                 ),
                 FilledButton(
                   onPressed: () {
-                    final normalizedHour = hour == 12 ? 0 : hour;
-                    final hour24 = normalizedHour + (isPm ? 12 : 0);
                     Navigator.pop(
-                      context,
+                      ctx,
                       DateTime(
                         selectedDate.year,
                         selectedDate.month,
                         selectedDate.day,
-                        hour24,
-                        minute,
+                        selectedTime.hour,
+                        selectedTime.minute,
                       ),
                     );
                   },
@@ -1362,15 +1371,16 @@ class _TodoHomePageState extends State<TodoHomePage>
       body: DecoratedBox(
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
             colors: [
               colorScheme.surface,
               Color.alphaBlend(
-                colorScheme.primary.withValues(alpha: 0.06),
+                colorScheme.primary.withValues(alpha: 0.10),
                 colorScheme.surfaceContainerHighest,
               ),
             ],
+            stops: const [0.0, 1.0],
           ),
         ),
         child: SafeArea(
@@ -1506,27 +1516,84 @@ class _AppHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
     final colorScheme = Theme.of(context).colorScheme;
 
     return Column(
       children: [
-        Text(
-          'Neo To-Do',
-          textAlign: TextAlign.center,
-          style: textTheme.displaySmall?.copyWith(
-            fontWeight: FontWeight.w900,
-            letterSpacing: 0.5,
-          ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [colorScheme.primary, colorScheme.tertiary],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: [
+                  BoxShadow(
+                    color: colorScheme.primary.withValues(alpha: 0.35),
+                    blurRadius: 14,
+                    offset: const Offset(0, 5),
+                  ),
+                ],
+              ),
+              child: const Icon(
+                Icons.check_rounded,
+                color: Colors.white,
+                size: 22,
+              ),
+            ),
+            const SizedBox(width: 12),
+            ShaderMask(
+              shaderCallback: (bounds) => LinearGradient(
+                colors: [colorScheme.primary, colorScheme.tertiary],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ).createShader(bounds),
+              child: Text(
+                'Neo To-Do',
+                style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -0.5,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ],
         ),
-        const SizedBox(height: 8),
-        Text(
-          _formatToday(),
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: colorScheme.primary,
-            fontWeight: FontWeight.w800,
-            fontSize: 15,
+        const SizedBox(height: 14),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+          decoration: BoxDecoration(
+            color: colorScheme.primaryContainer.withValues(alpha: 0.45),
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(
+              color: colorScheme.primary.withValues(alpha: 0.22),
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.calendar_today_rounded,
+                size: 13,
+                color: colorScheme.primary,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                _formatToday(),
+                style: TextStyle(
+                  color: colorScheme.primary,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 13,
+                  letterSpacing: 0.1,
+                ),
+              ),
+            ],
           ),
         ),
       ],
@@ -1640,21 +1707,24 @@ class _LiveTodoCard extends StatelessWidget {
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: colorScheme.surface.withValues(alpha: 0.88),
-        border: Border.all(
-          color: colorScheme.outlineVariant.withValues(alpha: 0.72),
-        ),
-        borderRadius: BorderRadius.circular(20),
+        color: colorScheme.surface,
+        borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: colorScheme.shadow.withValues(alpha: 0.14),
-            blurRadius: 80,
-            offset: const Offset(0, 24),
+            color: colorScheme.shadow.withValues(alpha: 0.07),
+            blurRadius: 32,
+            offset: const Offset(0, 8),
+          ),
+          BoxShadow(
+            color: colorScheme.shadow.withValues(alpha: 0.06),
+            blurRadius: 96,
+            spreadRadius: -8,
+            offset: const Offset(0, 36),
           ),
         ],
       ),
       child: Padding(
-        padding: EdgeInsets.all(compact ? 14 : 20),
+        padding: EdgeInsets.all(compact ? 14 : 22),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -1843,8 +1913,10 @@ class _SyncBar extends StatelessWidget {
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.42),
-        border: Border.all(color: colorScheme.outlineVariant),
+        color: colorScheme.surfaceContainerLow,
+        border: Border.all(
+          color: colorScheme.outlineVariant.withValues(alpha: 0.55),
+        ),
         borderRadius: BorderRadius.circular(14),
       ),
       child: Padding(
@@ -1935,8 +2007,10 @@ class _NotificationBar extends StatelessWidget {
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.46),
-        border: Border.all(color: colorScheme.outlineVariant),
+        color: colorScheme.surfaceContainerLow,
+        border: Border.all(
+          color: colorScheme.outlineVariant.withValues(alpha: 0.55),
+        ),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Padding(
@@ -1995,55 +2069,104 @@ class _FooterStats extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        border: Border(top: BorderSide(color: colorScheme.outlineVariant)),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.only(top: 10),
-        child: Wrap(
-          spacing: 16,
-          runSpacing: 6,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Divider(
+          height: 1,
+          color: colorScheme.outlineVariant.withValues(alpha: 0.5),
+        ),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
           alignment: WrapAlignment.spaceBetween,
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
-            _InlineStat(label: 'Total', value: total),
-            _InlineStat(label: 'Active', value: active),
-            _InlineStat(label: 'Completed', value: completed),
-            OutlinedButton(
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                _StatChip(
+                  label: 'Total',
+                  value: total,
+                  color: colorScheme.onSurfaceVariant,
+                ),
+                _StatChip(
+                  label: 'Active',
+                  value: active,
+                  color: colorScheme.primary,
+                ),
+                _StatChip(
+                  label: 'Done',
+                  value: completed,
+                  color: const Color(0xFF16A34A),
+                ),
+              ],
+            ),
+            TextButton.icon(
               onPressed: completed == 0 ? null : onClearCompleted,
-              child: const Text('Clear completed'),
+              icon: const Icon(Icons.delete_sweep_outlined, size: 16),
+              label: const Text('Clear done'),
+              style: TextButton.styleFrom(
+                foregroundColor: colorScheme.error,
+                textStyle: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
+              ),
             ),
           ],
         ),
-      ),
+      ],
     );
   }
 }
 
-class _InlineStat extends StatelessWidget {
-  const _InlineStat({required this.label, required this.value});
+class _StatChip extends StatelessWidget {
+  const _StatChip({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
 
   final String label;
   final int value;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return Text.rich(
-      TextSpan(
-        text: '$label: ',
-        style: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 14),
-        children: [
-          TextSpan(
-            text: '$value',
-            style: TextStyle(
-              color: colorScheme.onSurface,
-              fontWeight: FontWeight.w900,
-            ),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: color.withValues(alpha: 0.20)),
+      ),
+      child: Text.rich(
+        TextSpan(
+          text: '$value ',
+          style: TextStyle(
+            color: color,
+            fontSize: 14,
+            fontWeight: FontWeight.w900,
           ),
-        ],
+          children: [
+            TextSpan(
+              text: label,
+              style: TextStyle(
+                color: color.withValues(alpha: 0.75),
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -3351,15 +3474,17 @@ class _TodoRowState extends State<_TodoRow> {
         color: completed
             ? colorScheme.surfaceContainerLow
             : colorScheme.surfaceContainerLowest,
-        border: Border.all(color: colorScheme.outlineVariant),
-        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: colorScheme.outlineVariant.withValues(alpha: 0.7),
+        ),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(12),
         child: IntrinsicHeight(
           child: Row(
             children: [
-              ColoredBox(color: priorityColor, child: const SizedBox(width: 3)),
+              ColoredBox(color: priorityColor, child: const SizedBox(width: 4)),
               Expanded(
                 child: Padding(
                   padding: EdgeInsets.symmetric(
@@ -3836,28 +3961,42 @@ class _EmptyState extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
 
     return Center(
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          border: Border.all(color: colorScheme.outlineVariant),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.inbox_outlined,
-                size: 40,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 28),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                color: colorScheme.primary.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: Icon(
+                Icons.task_alt_rounded,
+                size: 30,
+                color: colorScheme.primary.withValues(alpha: 0.55),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'All clear!',
+              style: TextStyle(
+                color: colorScheme.onSurface,
+                fontWeight: FontWeight.w800,
+                fontSize: 15,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Add a task above to get started.',
+              style: TextStyle(
                 color: colorScheme.onSurfaceVariant,
+                fontSize: 13,
               ),
-              const SizedBox(height: 10),
-              const Text(
-                'No tasks yet',
-                style: TextStyle(fontWeight: FontWeight.w800),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

@@ -65,7 +65,7 @@ ThemeData _buildTheme(Brightness brightness, Color seed) {
     colorScheme: colorScheme,
     useMaterial3: true,
     scaffoldBackgroundColor: colorScheme.surface,
-    cardTheme: CardTheme(
+    cardTheme: CardThemeData(
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),

@@ -1497,7 +1497,7 @@ class _AppVersion extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(top: 18),
       child: Text(
-        'v0.1.0-flutter',
+        'v0.2.0-flutter',
         textAlign: TextAlign.center,
         style: TextStyle(
           color: colorScheme.onSurfaceVariant.withValues(alpha: 0.45),
@@ -1844,7 +1844,7 @@ class _SyncBar extends StatelessWidget {
             : colorScheme.onPrimary,
         elevation: 0,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        minimumSize: Size(compact ? double.infinity : 0, 34),
+        minimumSize: Size(compact ? double.infinity : 170, 34),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(10),
           side: BorderSide(
@@ -1995,7 +1995,7 @@ class _NotificationBar extends StatelessWidget {
           : () => onChanged(!enabled),
       style: OutlinedButton.styleFrom(
         foregroundColor: colorScheme.primary,
-        minimumSize: Size(compact ? double.infinity : 0, 34),
+        minimumSize: Size(compact ? double.infinity : 90, 34),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9)),
         side: BorderSide(
           color: colorScheme.primary.withValues(alpha: compact ? 0.22 : 0.45),
@@ -2332,7 +2332,7 @@ class _TaskComposer extends StatelessWidget {
                 ),
                 const SizedBox(width: 12),
                 SizedBox(
-                  width: 148,
+                  width: 118,
                   child: _ComposerField(
                     label: 'Priority',
                     child: priorityField,
@@ -2340,7 +2340,7 @@ class _TaskComposer extends StatelessWidget {
                 ),
                 const SizedBox(width: 12),
                 SizedBox(
-                  width: 220,
+                  width: 192,
                   child: _ComposerField(label: 'Due date', child: dueButton),
                 ),
                 const SizedBox(width: 12),

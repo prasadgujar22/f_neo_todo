@@ -21,14 +21,19 @@ bool get isNativeWebDueDatePickerAvailable {
           web.window.navigator.maxTouchPoints > 1);
   if (isSafari && !isMobileAppleSafari) return false;
 
+  // On touch/mobile devices the OS native picker immediately steals focus,
+  // firing blur before the user selects anything (120 ms timer dismisses it).
+  // Route them to the in-app CupertinoDatePicker dialog instead.
+  final isTouchDevice = web.window.navigator.maxTouchPoints > 0;
+  if (isTouchDevice) return false;
+
   final input = web.document.createElement('input') as web.HTMLInputElement
     ..type = 'datetime-local';
   final supportsDateTimeLocal = input.type == 'datetime-local';
   if (!supportsDateTimeLocal) return false;
 
   final hasPickerApi = input.hasProperty('showPicker'.toJS).toDart;
-  final isTouchDevice = web.window.navigator.maxTouchPoints > 0;
-  return hasPickerApi || isTouchDevice;
+  return hasPickerApi;
 }
 
 Future<DateTime?> chooseNativeWebDueDate({

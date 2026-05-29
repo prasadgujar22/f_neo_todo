@@ -4,37 +4,11 @@ import 'dart:js_interop_unsafe';
 
 import 'package:web/web.dart' as web;
 
-bool get isNativeWebDueDatePickerAvailable {
-  final userAgent = web.window.navigator.userAgent;
-  final isSafari =
-      userAgent.contains('Safari') &&
-      !userAgent.contains('Chrome') &&
-      !userAgent.contains('Chromium') &&
-      !userAgent.contains('CriOS') &&
-      !userAgent.contains('FxiOS') &&
-      !userAgent.contains('Edg');
-  final isMobileAppleSafari =
-      userAgent.contains('iPhone') ||
-      userAgent.contains('iPad') ||
-      userAgent.contains('iPod') ||
-      (userAgent.contains('Macintosh') &&
-          web.window.navigator.maxTouchPoints > 1);
-  if (isSafari && !isMobileAppleSafari) return false;
-
-  // On touch/mobile devices the OS native picker immediately steals focus,
-  // firing blur before the user selects anything (120 ms timer dismisses it).
-  // Route them to the in-app CupertinoDatePicker dialog instead.
-  final isTouchDevice = web.window.navigator.maxTouchPoints > 0;
-  if (isTouchDevice) return false;
-
-  final input = web.document.createElement('input') as web.HTMLInputElement
-    ..type = 'datetime-local';
-  final supportsDateTimeLocal = input.type == 'datetime-local';
-  if (!supportsDateTimeLocal) return false;
-
-  final hasPickerApi = input.hasProperty('showPicker'.toJS).toDart;
-  return hasPickerApi;
-}
+// The native HTML5 datetime-local input always anchors to the input
+// element's screen position. Because the input is a hidden 1×1 px element,
+// the picker always appears in the wrong corner. Returning false routes
+// every browser to the in-app CupertinoDatePicker dialog instead.
+bool get isNativeWebDueDatePickerAvailable => false;
 
 Future<DateTime?> chooseNativeWebDueDate({
   required DateTime initialDate,

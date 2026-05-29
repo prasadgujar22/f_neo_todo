@@ -35,8 +35,18 @@ void main() {
     expect(find.text('Draft Flutter notification service'), findsOneWidget);
   });
 
+  Future<void> addTask(WidgetTester tester, String text) async {
+    await tester.enterText(
+      find.widgetWithText(TextField, 'What needs to be done?'),
+      text,
+    );
+    await tester.tap(find.widgetWithText(FilledButton, 'Add'));
+    await tester.pump();
+  }
+
   testWidgets('edits a task inline', (tester) async {
     await pumpDesktopApp(tester);
+    await addTask(tester, 'Port todo domain model to Dart');
 
     await tester.tap(find.byIcon(Icons.edit_outlined).first);
     await tester.pump();
@@ -54,11 +64,12 @@ void main() {
 
   testWidgets('toggles a task complete', (tester) async {
     await pumpDesktopApp(tester);
+    await addTask(tester, 'Wire native notification scheduler');
 
     await tester.tap(find.byIcon(Icons.radio_button_unchecked).first);
     await tester.pump();
 
-    expect(find.byIcon(Icons.check_circle), findsNWidgets(2));
+    expect(find.byIcon(Icons.check_circle), findsOneWidget);
   });
 
   testWidgets('creates a group and shows it in the composer', (tester) async {

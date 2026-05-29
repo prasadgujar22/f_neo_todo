@@ -331,31 +331,7 @@ class _TodoHomePageState extends State<TodoHomePage>
   final SupabaseClient? _supabase = _isSupabaseConfigured
       ? Supabase.instance.client
       : null;
-  final List<TodoItem> _todos = [
-    TodoItem(
-      id: 'sample-domain',
-      text: 'Port todo domain model to Dart',
-      priority: TodoPriority.high,
-      createdAt: DateTime.now(),
-      sortOrder: 0,
-      dueDate: DateTime.now().add(const Duration(hours: 2)),
-    ),
-    TodoItem(
-      id: 'sample-notifications',
-      text: 'Wire native notification scheduler',
-      priority: TodoPriority.medium,
-      createdAt: DateTime.now(),
-      sortOrder: 1,
-    ),
-    TodoItem(
-      id: 'sample-sync',
-      text: 'Reuse Supabase sync contract',
-      priority: TodoPriority.low,
-      createdAt: DateTime.now(),
-      sortOrder: 2,
-      completed: true,
-    ),
-  ];
+  final List<TodoItem> _todos = [];
   final List<TodoGroup> _groups = [];
   final Set<String> _collapsedGroups = <String>{};
   final Map<String, TodoSortMode> _groupSortModes = <String, TodoSortMode>{};
@@ -472,7 +448,7 @@ class _TodoHomePageState extends State<TodoHomePage>
       });
       await _reconcileNotifications();
     } catch (_) {
-      // Ignore invalid local state and keep the bundled starter tasks.
+      // Ignore invalid local state and start from an empty task list.
     }
   }
 
@@ -1482,7 +1458,7 @@ class _AppVersion extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(top: 18),
       child: Text(
-        'v0.2.0-flutter',
+        'v0.3.0-flutter',
         textAlign: TextAlign.center,
         style: TextStyle(
           color: colorScheme.onSurfaceVariant.withValues(alpha: 0.45),

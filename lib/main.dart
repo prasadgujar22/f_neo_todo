@@ -374,8 +374,13 @@ class _TodoHomePageState extends State<TodoHomePage>
   Session? _session;
   Timer? _remoteSaveDebounce;
   Future<void> _remoteSaveQueue = Future.value();
-  String _syncStatus = _isSupabaseConfigured ? 'Connecting...' : 'Local mode';
-  String _syncError = '';
+  // Held in ValueNotifiers so transient sync status changes (e.g. the
+  // Saving... -> Synced flip on every debounced save) only repaint the small
+  // sync bar instead of rebuilding and re-sorting the entire todo list.
+  final ValueNotifier<String> _syncStatus = ValueNotifier(
+    _isSupabaseConfigured ? 'Connecting...' : 'Local mode',
+  );
+  final ValueNotifier<String> _syncError = ValueNotifier('');
   String? _remoteUpdatedAt;
   bool _authBusy = false;
   bool _remoteReady = false;
@@ -398,7 +403,17 @@ class _TodoHomePageState extends State<TodoHomePage>
     _remoteSaveDebounce?.cancel();
     _taskController.dispose();
     _groupController.dispose();
+    _syncStatus.dispose();
+    _syncError.dispose();
     super.dispose();
+  }
+
+  // Updates the sync status/error without a full setState. Both are surfaced
+  // through ValueListenableBuilders in the sync bar, so changing them does not
+  // rebuild (or re-sort) the rest of the page.
+  void _setSyncState({String? status, String? error}) {
+    if (status != null) _syncStatus.value = status;
+    if (error != null) _syncError.value = error;
   }
 
   Future<void> _loadLocalState() async {
@@ -542,13 +557,12 @@ class _TodoHomePageState extends State<TodoHomePage>
       setState(() {
         _session = nextSession;
         _authBusy = false;
-        if (nextSession == null) {
-          _syncStatus = 'Local mode';
-          _syncError = '';
-          _remoteUpdatedAt = null;
-          _remoteReady = false;
-        }
       });
+      if (nextSession == null) {
+        _remoteUpdatedAt = null;
+        _remoteReady = false;
+        _setSyncState(status: 'Local mode', error: '');
+      }
       if (nextSession != null) {
         _loadRemoteForSession(nextSession);
       }
@@ -558,8 +572,10 @@ class _TodoHomePageState extends State<TodoHomePage>
     setState(() {
       _session = currentSession;
       _authBusy = false;
-      _syncStatus = currentSession == null ? 'Local mode' : 'Connecting...';
     });
+    _setSyncState(
+      status: currentSession == null ? 'Local mode' : 'Connecting...',
+    );
     if (currentSession != null) {
       _loadRemoteForSession(currentSession);
     }
@@ -568,10 +584,8 @@ class _TodoHomePageState extends State<TodoHomePage>
   Future<void> _signInWithGoogle() async {
     final supabase = _supabase;
     if (supabase == null) return;
-    setState(() {
-      _authBusy = true;
-      _syncError = '';
-    });
+    setState(() => _authBusy = true);
+    _setSyncState(error: '');
 
     try {
       await supabase.auth.signInWithOAuth(
@@ -580,39 +594,28 @@ class _TodoHomePageState extends State<TodoHomePage>
       );
     } catch (error) {
       if (!mounted) return;
-      setState(() {
-        _authBusy = false;
-        _syncStatus = 'Auth failed';
-        _syncError = '$error';
-      });
+      setState(() => _authBusy = false);
+      _setSyncState(status: 'Auth failed', error: '$error');
     }
   }
 
   Future<void> _signOut() async {
     final supabase = _supabase;
     if (supabase == null) return;
-    setState(() {
-      _authBusy = true;
-      _syncError = '';
-    });
+    setState(() => _authBusy = true);
+    _setSyncState(error: '');
     try {
       await supabase.auth.signOut(scope: SignOutScope.local);
     } catch (error) {
       if (!mounted) return;
-      setState(() {
-        _authBusy = false;
-        _syncStatus = 'Sign out failed';
-        _syncError = '$error';
-      });
+      setState(() => _authBusy = false);
+      _setSyncState(status: 'Sign out failed', error: '$error');
     }
   }
 
   Future<void> _loadRemoteForSession(Session session) async {
-    setState(() {
-      _syncStatus = 'Syncing...';
-      _syncError = '';
-      _remoteReady = false;
-    });
+    _remoteReady = false;
+    _setSyncState(status: 'Syncing...', error: '');
 
     try {
       final remote = await _loadRemoteTodoState(session.user.id);
@@ -643,17 +646,11 @@ class _TodoHomePageState extends State<TodoHomePage>
       }
 
       if (!mounted || _session?.user.id != session.user.id) return;
-      setState(() {
-        _remoteReady = true;
-        _syncStatus = 'Synced';
-        _syncError = '';
-      });
+      _remoteReady = true;
+      _setSyncState(status: 'Synced', error: '');
     } catch (error) {
       if (!mounted || _session?.user.id != session.user.id) return;
-      setState(() {
-        _syncStatus = 'Sync failed';
-        _syncError = '$error';
-      });
+      _setSyncState(status: 'Sync failed', error: '$error');
     }
   }
 
@@ -670,10 +667,7 @@ class _TodoHomePageState extends State<TodoHomePage>
     if (!_userMutated) return;
     final saveRun = _saveRun + 1;
     _saveRun = saveRun;
-    setState(() {
-      _syncStatus = 'Saving...';
-      _syncError = '';
-    });
+    _setSyncState(status: 'Saving...', error: '');
 
     _remoteSaveQueue = _remoteSaveQueue.catchError((_) {}).then((_) async {
       final updatedAt = await _saveRemoteTodoState(userId, _remoteUpdatedAt);
@@ -683,23 +677,14 @@ class _TodoHomePageState extends State<TodoHomePage>
     try {
       await _remoteSaveQueue;
       if (!mounted || _saveRun != saveRun) return;
-      setState(() {
-        _userMutated = false;
-        _syncStatus = 'Synced';
-        _syncError = '';
-      });
+      _userMutated = false;
+      _setSyncState(status: 'Synced', error: '');
     } on _RemoteStateConflictException catch (error) {
       if (!mounted || _saveRun != saveRun) return;
-      setState(() {
-        _syncStatus = 'Remote changed';
-        _syncError = error.toString();
-      });
+      _setSyncState(status: 'Remote changed', error: error.toString());
     } catch (error) {
       if (!mounted || _saveRun != saveRun) return;
-      setState(() {
-        _syncStatus = 'Sync failed';
-        _syncError = '$error';
-      });
+      _setSyncState(status: 'Sync failed', error: '$error');
     }
   }
 
@@ -1667,8 +1652,8 @@ class _LiveTodoCard extends StatelessWidget {
   final int active;
   final int completed;
   final bool isSyncConfigured;
-  final String syncStatus;
-  final String syncError;
+  final ValueListenable<String> syncStatus;
+  final ValueListenable<String> syncError;
   final String? userEmail;
   final bool authBusy;
   final VoidCallback onSignIn;
@@ -1813,8 +1798,8 @@ class _SyncBar extends StatelessWidget {
   });
 
   final bool isConfigured;
-  final String status;
-  final String error;
+  final ValueListenable<String> status;
+  final ValueListenable<String> error;
   final String? userEmail;
   final bool busy;
   final VoidCallback onSignIn;
@@ -1824,11 +1809,6 @@ class _SyncBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final signedIn = userEmail != null;
-    final statusText = !isConfigured
-        ? 'Local mode'
-        : signedIn
-        ? 'Signed in as $userEmail'
-        : status;
     final statusColor = signedIn ? Colors.green : colorScheme.onSurfaceVariant;
     final compact = MediaQuery.sizeOf(context).width < 600;
     final authButton = FilledButton(
@@ -1863,52 +1843,69 @@ class _SyncBar extends StatelessWidget {
             : 'Continue with Google',
       ),
     );
-    final statusRow = Row(
-      children: [
-        _StatusDot(color: statusColor),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                statusText,
-                overflow: compact
-                    ? TextOverflow.visible
-                    : TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: colorScheme.onSurfaceVariant,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              if (error.isNotEmpty)
-                Text(
-                  error,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: colorScheme.error,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
+    // Only the status row depends on the live sync status/error, so it is the
+    // only part rebuilt when those values change.
+    final statusRow = ValueListenableBuilder<String>(
+      valueListenable: status,
+      builder: (context, statusValue, _) {
+        final statusText = !isConfigured
+            ? 'Local mode'
+            : signedIn
+            ? 'Signed in as $userEmail'
+            : statusValue;
+        return Row(
+          children: [
+            _StatusDot(color: statusColor),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    statusText,
+                    overflow: compact
+                        ? TextOverflow.visible
+                        : TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: colorScheme.onSurfaceVariant,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
-                ),
-            ],
-          ),
-        ),
-        if (signedIn && !compact)
-          Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: Text(
-              status,
-              style: TextStyle(
-                color: colorScheme.primary,
-                fontSize: 11,
-                fontWeight: FontWeight.w800,
+                  ValueListenableBuilder<String>(
+                    valueListenable: error,
+                    builder: (context, errorValue, _) {
+                      if (errorValue.isEmpty) return const SizedBox.shrink();
+                      return Text(
+                        errorValue,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: colorScheme.error,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      );
+                    },
+                  ),
+                ],
               ),
             ),
-          ),
-      ],
+            if (signedIn && !compact)
+              Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: Text(
+                  statusValue,
+                  style: TextStyle(
+                    color: colorScheme.primary,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
     );
 
     return DecoratedBox(

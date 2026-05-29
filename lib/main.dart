@@ -42,23 +42,39 @@ class NeoTodoApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const seed = Color(0xFF6D28D9);
-
     return MaterialApp(
       title: 'Neo To-Do',
       debugShowCheckedModeBanner: false,
       themeMode: ThemeMode.system,
-      theme: _buildTheme(Brightness.light, seed),
-      darkTheme: _buildTheme(Brightness.dark, seed),
+      theme: _buildTheme(Brightness.light),
+      darkTheme: _buildTheme(Brightness.dark),
       home: const TodoHomePage(),
     );
   }
 }
 
-ThemeData _buildTheme(Brightness brightness, Color seed) {
+ThemeData _buildTheme(Brightness brightness) {
+  final isLight = brightness == Brightness.light;
+
+  // Matches neo-todo-peach.vercel.app:
+  //   light --bg:#f7f8fc  --bg-accent:#edf1f8  --accent:#2563eb
+  //   dark  --bg:#0b1020  --bg-accent:#111827
   final colorScheme = ColorScheme.fromSeed(
-    seedColor: seed,
+    seedColor: const Color(0xFF2563EB),
     brightness: brightness,
+  ).copyWith(
+    surface: isLight ? const Color(0xFFF7F8FC) : const Color(0xFF0B1020),
+    surfaceContainerLow: isLight ? const Color(0xFFEDF1F8) : const Color(0xFF111827),
+    surfaceContainerLowest: isLight ? const Color(0xFFFFFFFF) : const Color(0xFF0F172A),
+    surfaceContainerHigh: isLight ? const Color(0xFFDDE4F0) : const Color(0xFF1E2A3D),
+    outlineVariant: isLight ? const Color(0x1A131827) : const Color(0x1AE2E8F0),
+    onSurface: isLight ? const Color(0xFF131827) : const Color(0xFFE2E8F0),
+    onSurfaceVariant: isLight ? const Color(0xFF657187) : const Color(0xFF94A3B8),
+  );
+
+  // Card border: 1px solid var(--border) matching the web app
+  final cardBorderSide = BorderSide(
+    color: isLight ? const Color(0x1A131827) : const Color(0x1AE2E8F0),
   );
 
   return ThemeData(
@@ -68,9 +84,11 @@ ThemeData _buildTheme(Brightness brightness, Color seed) {
     cardTheme: CardThemeData(
       elevation: 0,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
+        side: cardBorderSide,
       ),
-      color: colorScheme.surfaceContainerLow,
+      // rgba(255,255,255,.88) glassmorphism in light, opaque dark card
+      color: isLight ? const Color(0xE0FFFFFF) : colorScheme.surfaceContainerLow,
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
